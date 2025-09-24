@@ -16,7 +16,7 @@ def main():
 
     # 启动机器人
     bot: BotClient = BotClient()
-    api: BotAPI = bot.run_backend(debug=True, enable_webui_interaction=True)
+    api: BotAPI = bot.run_backend(debug=True)
 
     print("🤖 NapCat机器人后端已启动")
     api.send_private_text_sync(config.root, "🤖 GitHub监听Bot已启动")
