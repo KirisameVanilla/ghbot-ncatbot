@@ -11,7 +11,7 @@ import yaml
 def main():
     """主函数"""
     # 加载配置
-    with open("debug_config.yaml", "r", encoding="utf-8") as f:
+    with open("gh_config.yaml", "r", encoding="utf-8") as f:
         config_data = yaml.load(f.read(), Loader=yaml.FullLoader)
 
     # 启动机器人
