@@ -154,6 +154,9 @@ class GitHubWebhookHandler:
             case "fork":
                 if events_config.get("fork", False):
                     message = self._format_fork_message(payload)
+            case "issue_comment":
+                if events_config.get("issue_comment", False):
+                    message = self._format_issue_comment_message(payload)
             case _:
                 from pprint import pp
 
@@ -261,6 +264,27 @@ class GitHubWebhookHandler:
         message = f"🍴 [{repo}] 被Fork\n"
         message += f"👤 用户: {user}\n"
         message += f"🔢 总Fork数: {payload['repository']['forks_count']}"
+
+        return message
+
+    def _format_issue_comment_message(self, payload: Dict[str, Any]) -> str:
+        """格式化Issue评论消息"""
+        action = payload["action"]
+        comment = payload["comment"]
+        issue = payload["issue"]
+        repo = payload["repository"]["full_name"]
+
+        if action == "created":
+            message = f"💬 [{repo}] Issue 有新评论\n"
+            message += f"📋 Issue标题: {issue['title']}\n"
+            message += f"👤 评论者: {comment['user']['login']}\n"
+            message += f"📝 评论内容: {comment['body'][:100]}...\n"  # 取前100字符
+            message += f"🔗 链接: {comment['html_url']}"
+        else:
+            from pprint import pp
+
+            pp(payload)
+            return ""
 
         return message
 
