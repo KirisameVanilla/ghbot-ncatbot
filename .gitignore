@@ -3,3 +3,4 @@ napcat/
 plugins/
 data/
 debug_config.yaml
+__pycache__/
