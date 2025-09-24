@@ -135,18 +135,29 @@ class GitHubWebhookHandler:
 
         message = None
 
-        if event_type == "push" and events_config.get("push", False):
-            message = self._format_push_message(payload)
-        elif event_type == "pull_request" and events_config.get("pull_request", False):
-            message = self._format_pull_request_message(payload)
-        elif event_type == "issues" and events_config.get("issues", False):
-            message = self._format_issues_message(payload)
-        elif event_type == "release" and events_config.get("release", False):
-            message = self._format_release_message(payload)
-        elif event_type == "star" and events_config.get("star", False):
-            message = self._format_star_message(payload)
-        elif event_type == "fork" and events_config.get("fork", False):
-            message = self._format_fork_message(payload)
+        match event_type:
+            case "push":
+                if events_config.get("push", False):
+                    message = self._format_push_message(payload)
+            case "pull_request":
+                if events_config.get("pull_request", False):
+                    message = self._format_pull_request_message(payload)
+            case "issues":
+                if events_config.get("issues", False):
+                    message = self._format_issues_message(payload)
+            case "release":
+                if events_config.get("release", False):
+                    message = self._format_release_message(payload)
+            case "star":
+                if events_config.get("star", False):
+                    message = self._format_star_message(payload)
+            case "fork":
+                if events_config.get("fork", False):
+                    message = self._format_fork_message(payload)
+            case _:
+                from pprint import pp
+
+                pp(payload)
 
         if message:
             self._send_notifications(message)
