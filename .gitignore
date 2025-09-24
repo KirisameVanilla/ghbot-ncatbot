@@ -4,3 +4,4 @@ plugins/
 data/
 debug_config.yaml
 __pycache__/
+ghbot_ncatbot.egg-info/
