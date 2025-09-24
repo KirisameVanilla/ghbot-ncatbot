@@ -1,8 +1,9 @@
 import threading
 import time
+from logging import Logger
 from ncatbot.core import BotClient
 from ncatbot.core.api import BotAPI
-from ncatbot.utils import config
+from ncatbot.utils import config, get_log
 from github_webhook import GitHubWebhookHandler
 
 import yaml
@@ -17,8 +18,9 @@ def main():
     # 启动机器人
     bot: BotClient = BotClient()
     api: BotAPI = bot.run_backend(debug=True)
+    logger: Logger = get_log("ghbot")
 
-    print("🤖 NapCat机器人后端已启动")
+    logger.info("🤖 NapCat机器人后端已启动")
     api.send_private_text_sync(config.root, "🤖 GitHub监听Bot已启动")
 
     # 启动GitHub webhook服务器
@@ -34,7 +36,7 @@ def main():
         )
         webhook_thread.start()
 
-        print(f"🌐 GitHub Webhook服务器已启动在端口 {webhook_port}")
+        logger.info(f"🌐 GitHub Webhook服务器已启动在端口 {webhook_port}")
 
         # 发送webhook启动通知
         webhook_msg = f"🌐 GitHub Webhook服务已启动\n📡 监听端口: {webhook_port}\n🔗 Webhook URL: http://你的服务器IP:{webhook_port}/webhook"
@@ -43,18 +45,18 @@ def main():
             api.send_private_text_sync(config.root, webhook_msg)
 
         # 保持主线程运行
-        print("✅ 所有服务已启动，Bot正在运行...")
-        print("按 Ctrl+C 停止服务")
+        logger.info("✅ 所有服务已启动，Bot正在运行...")
+        logger.info("按 Ctrl+C 停止服务")
 
         try:
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
-            print("\n🛑 收到停止信号，正在关闭服务...")
+            logger.info("🛑 收到停止信号，正在关闭服务...")
 
     except Exception as e:
         error_msg = f"❌ 启动GitHub Webhook服务时出错: {e}"
-        print(error_msg)
+        logger.error(error_msg)
 
         if config.root:
             api.send_private_text_sync(config.root, error_msg)
