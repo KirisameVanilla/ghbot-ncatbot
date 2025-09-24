@@ -25,9 +25,33 @@ class GitHubWebhookHandler:
         def handle_webhook():
             return self._handle_webhook_request()
             
-        @self.app.route('/health', methods=['GET'])
+        @self.app.route('/health', methods=['GET', 'POST', 'HEAD', 'OPTIONS'])
         def health_check():
-            return jsonify({"status": "ok", "timestamp": datetime.now().isoformat()})
+            # 记录请求信息用于调试
+            try:
+                request_info = {
+                    "method": request.method,
+                    "headers": dict(request.headers),
+                    "remote_addr": request.remote_addr,
+                    "url": request.url,
+                    "user_agent": request.headers.get('User-Agent', ''),
+                    "x_forwarded_for": request.headers.get('X-Forwarded-For', ''),
+                    "x_real_ip": request.headers.get('X-Real-IP', '')
+                }
+                print(f"Health check request: {request_info}")
+            except Exception as e:
+                print(f"Error logging request info: {e}")
+            
+            return jsonify({
+                "status": "ok", 
+                "timestamp": datetime.now().isoformat(),
+                "method": request.method,
+                "remote_addr": request.remote_addr
+            })
+            
+        @self.app.route('/', methods=['GET'])
+        def root():
+            return jsonify({"message": "GitHub Webhook Server", "health": "/health", "webhook": "/webhook"})
     
     def _verify_signature(self, payload: bytes, signature: str) -> bool:
         """验证GitHub webhook签名"""
@@ -246,4 +270,24 @@ class GitHubWebhookHandler:
         """运行webhook服务器"""
         print(f"GitHub Webhook服务器启动在 http://{host}:{port}")
         print(f"Webhook URL: http://{host}:{port}/webhook")
+        print(f"Health Check: http://{host}:{port}/health")
+        
+        # 添加错误处理
+        @self.app.errorhandler(500)
+        def internal_error(error):
+            print(f"Internal Server Error: {error}")
+            return jsonify({"error": "Internal server error"}), 500
+            
+        @self.app.errorhandler(404)
+        def not_found(error):
+            print(f"Not Found: {error}")
+            return jsonify({"error": "Not found"}), 404
+            
+        # 添加请求前钩子用于调试
+        @self.app.before_request
+        def log_request_info():
+            print(f"Request: {request.method} {request.path}")
+            print(f"Headers: {dict(request.headers)}")
+            print(f"Remote: {request.remote_addr}")
+        
         self.app.run(host=host, port=port, debug=debug)
