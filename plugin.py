@@ -8,33 +8,41 @@ import yaml
 from logging import Logger
 from typing import Dict, Any, Optional
 
-from ncatbot.core import BotClient
-from ncatbot.core.api import BotAPI
 from ncatbot.utils import config, get_log
+
+from ncatbot.plugin_system import NcatBotPlugin, command_registry
+from ncatbot.plugin_system import group_filter
+from ncatbot.core import GroupMessage
 
 from .webhook import GitHubWebhookHandler
 
+LOG: Logger = get_log("ghbot")
 
-class GitHubBot:
+
+class GitHubBotPlugin(NcatBotPlugin):
     """GitHub Bot 主类，负责整合所有功能"""
 
-    def __init__(self, config_path: str = "gh_config.yaml"):
+    name = "GitHubBotPlugin"
+    version = "0.0.1"
+    dependencies = {"flask": "3.1.2", "cryptography": "46.0.1"}
+    author = "KirisameVanilla"
+
+    async def on_load(self):
         """
         初始化GitHub Bot
 
         Args:
             config_path: 配置文件路径
         """
-        self.config_path = config_path
+        self.config_path = "gh_config.yaml"
         self.config_data: Dict[str, Any] = {}
-        self.bot: Optional[BotClient] = None
-        self.api: Optional[BotAPI] = None
-        self.logger: Logger = get_log("ghbot")  # 直接初始化logger
         self.webhook_handler: Optional[GitHubWebhookHandler] = None
         self.webhook_thread: Optional[threading.Thread] = None
 
         # 加载配置
         self._load_config()
+
+        self.start(webhook_debug=False)
 
     def _load_config(self):
         """加载配置文件"""
@@ -46,39 +54,28 @@ class GitHubBot:
         except yaml.YAMLError as e:
             raise ValueError(f"配置文件格式错误: {e}")
 
-    def start(self, bot_debug: bool = True, webhook_debug: bool = False):
+    def start(self, webhook_debug: bool = False):
         """
         启动GitHub Bot
 
         Args:
-            bot_debug: 是否开启bot调试模式
             webhook_debug: 是否开启webhook调试模式
         """
         try:
-            # 启动机器人后端
-            self._start_bot_backend(bot_debug)
-
             # 启动webhook服务
             self._start_webhook_server(webhook_debug)
 
             # 发送启动通知
             self._send_startup_notification()
 
-            self.logger.info("✅ 所有服务已启动，Bot正在运行...")
-            self.logger.info("按 Ctrl+C 停止服务")
+            LOG.info("✅ 所有服务已启动，Bot正在运行...")
 
         except Exception as e:
             error_msg = f"❌ 启动GitHub Bot时出错: {e}"
-            self.logger.error(error_msg)
+            LOG.error(error_msg)
             if self.api and config.root:
                 self.api.send_private_text_sync(config.root, error_msg)
             raise
-
-    def _start_bot_backend(self, debug: bool = True):
-        """启动机器人后端"""
-        self.bot = BotClient()
-        self.api = self.bot.run_backend(debug=debug)
-        self.logger.info("🤖 NapCat机器人后端已启动")
 
     def _start_webhook_server(self, debug: bool = False):
         """启动webhook服务器"""
@@ -97,7 +94,7 @@ class GitHubBot:
         )
         self.webhook_thread.start()
 
-        self.logger.info(f"🌐 GitHub Webhook服务器已启动在端口 {webhook_port}")
+        LOG.info(f"🌐 GitHub Webhook服务器已启动在端口 {webhook_port}")
 
     def _send_startup_notification(self):
         """发送启动通知"""
@@ -115,35 +112,10 @@ class GitHubBot:
         if config.root:
             self.api.send_private_text_sync(config.root, webhook_msg)
 
-    def run(self, bot_debug: bool = True, webhook_debug: bool = False):
-        """
-        运行GitHub Bot（阻塞模式）
-
-        Args:
-            bot_debug: 是否开启bot调试模式
-            webhook_debug: 是否开启webhook调试模式
-        """
-        self.start(bot_debug, webhook_debug)
-
-        # 保持主线程运行
-        try:
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            self.stop()
-
-    def stop(self):
-        """停止GitHub Bot"""
-        self.logger.info("🛑 收到停止信号，正在关闭服务...")
-
-        # 这里可以添加更多清理逻辑
-        # 比如优雅关闭webhook服务器等
-
     def is_running(self) -> bool:
         """检查Bot是否正在运行"""
         return (
-            self.bot is not None
-            and self.api is not None
+            self.api is not None
             and self.webhook_thread is not None
             and self.webhook_thread.is_alive()
         )
@@ -157,3 +129,8 @@ class GitHubBot:
         """获取健康检查URL"""
         port = self.config_data.get("github", {}).get("port", 5000)
         return f"http://你的服务器IP:{port}/health"
+
+    @group_filter
+    @command_registry.command("ghbot", description="基础命令")
+    async def on_group_message(self, event: GroupMessage):
+        await event.reply(text="干嘛", at=False)
