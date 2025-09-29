@@ -23,7 +23,6 @@ class GitHubBotPlugin(NcatBotPlugin):
 
     name = "GitHubBotPlugin"
     version = "0.0.1"
-    dependencies = {"flask": "3.1.2", "cryptography": "46.0.1"}
     author = "KirisameVanilla"
 
     async def on_load(self):
