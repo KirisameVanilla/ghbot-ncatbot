@@ -3,7 +3,6 @@ GitHub Bot 主类模块
 """
 
 import threading
-import time
 import yaml
 from logging import Logger
 from typing import Dict, Any, Optional
