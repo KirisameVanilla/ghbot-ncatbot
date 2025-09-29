@@ -1,20 +1,12 @@
-"""
-GitHub Bot 主类模块
-"""
-
-import threading
-import yaml
-from logging import Logger
-from typing import Dict, Any, Optional
-
-from ncatbot.utils import config, get_log
-
-from ncatbot.plugin_system import NcatBotPlugin, command_registry, group_filter
 from ncatbot.core.event import GroupMessageEvent
+from ncatbot.plugin_system import NcatBotPlugin, command_registry, group_filter
+from ncatbot.utils import config, get_log
 
 from .webhook import GitHubWebhookHandler
 
-LOG: Logger = get_log("ghbot")
+import threading
+import yaml
+from typing import Any, Dict, Optional
 
 
 class GitHubBotPlugin(NcatBotPlugin):
@@ -23,6 +15,8 @@ class GitHubBotPlugin(NcatBotPlugin):
     name = "GitHubBotPlugin"
     version = "0.0.1"
     author = "KirisameVanilla"
+
+    logger = get_log("ghbot")
 
     gh_command_group = command_registry.group("gh", description="GitHub 监听插件指令组")
 
@@ -64,11 +58,11 @@ class GitHubBotPlugin(NcatBotPlugin):
             # 启动webhook服务
             self._start_webhook_server(webhook_debug)
 
-            LOG.info("✅ 所有服务已启动，Bot正在运行...")
+            self.logger.info("✅ 所有服务已启动，Bot正在运行...")
 
         except Exception as e:
             error_msg = f"❌ 启动GitHub Bot时出错: {e}"
-            LOG.error(error_msg)
+            self.logger.error(error_msg)
             if self.api and config.root:
                 self.api.send_private_text_sync(config.root, error_msg)
             raise
@@ -90,7 +84,7 @@ class GitHubBotPlugin(NcatBotPlugin):
         )
         self.webhook_thread.start()
 
-        LOG.info(f"🌐 GitHub Webhook服务器已启动在端口 {webhook_port}")
+        self.logger.info(f"🌐 GitHub Webhook服务器已启动在端口 {webhook_port}")
 
     @gh_command_group.command("ping", description="大笨蛋你还活着吗")
     async def is_running(self, event: GroupMessageEvent):
