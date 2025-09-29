@@ -9,9 +9,8 @@ from typing import Dict, Any, Optional
 
 from ncatbot.utils import config, get_log
 
-from ncatbot.plugin_system import NcatBotPlugin, command_registry
-from ncatbot.plugin_system import group_filter
-from ncatbot.core import GroupMessage
+from ncatbot.plugin_system import NcatBotPlugin, command_registry, group_filter
+from ncatbot.core.event import GroupMessageEvent
 
 from .webhook import GitHubWebhookHandler
 
@@ -19,11 +18,13 @@ LOG: Logger = get_log("ghbot")
 
 
 class GitHubBotPlugin(NcatBotPlugin):
-    """GitHub Bot 主类，负责整合所有功能"""
+    """GitHub 监听插件"""
 
     name = "GitHubBotPlugin"
     version = "0.0.1"
     author = "KirisameVanilla"
+
+    gh_command_group = command_registry.group("gh", description="GitHub 监听插件指令组")
 
     async def on_load(self):
         """
@@ -63,9 +64,6 @@ class GitHubBotPlugin(NcatBotPlugin):
             # 启动webhook服务
             self._start_webhook_server(webhook_debug)
 
-            # 发送启动通知
-            self._send_startup_notification()
-
             LOG.info("✅ 所有服务已启动，Bot正在运行...")
 
         except Exception as e:
@@ -94,41 +92,18 @@ class GitHubBotPlugin(NcatBotPlugin):
 
         LOG.info(f"🌐 GitHub Webhook服务器已启动在端口 {webhook_port}")
 
-    def _send_startup_notification(self):
-        """发送启动通知"""
-        if not self.api:
-            return
-
-        # 发送bot启动通知
-        if config.root:
-            self.api.send_private_text_sync(config.root, "🤖 GitHub监听Bot已启动")
-
-        # 发送webhook启动通知
-        webhook_port = self.config_data.get("github", {}).get("port", 5000)
-        webhook_msg = f"🌐 GitHub Webhook服务已启动\n📡 监听端口: {webhook_port}\n🔗 Webhook URL: http://你的服务器IP:{webhook_port}/webhook"
-
-        if config.root:
-            self.api.send_private_text_sync(config.root, webhook_msg)
-
-    def is_running(self) -> bool:
+    @gh_command_group.command("ping", description="大笨蛋你还活着吗")
+    async def is_running(self, event: GroupMessageEvent):
         """检查Bot是否正在运行"""
-        return (
+        is_alive = (
             self.api is not None
             and self.webhook_thread is not None
             and self.webhook_thread.is_alive()
         )
-
-    def get_webhook_url(self) -> str:
-        """获取webhook URL"""
-        port = self.config_data.get("github", {}).get("port", 5000)
-        return f"http://你的服务器IP:{port}/webhook"
-
-    def get_health_check_url(self) -> str:
-        """获取健康检查URL"""
-        port = self.config_data.get("github", {}).get("port", 5000)
-        return f"http://你的服务器IP:{port}/health"
+        message = "大笨蛋我还活着" if is_alive else "似了喵"
+        await event.reply(message, at=False)
 
     @group_filter
     @command_registry.command("ghbot", description="基础命令")
-    async def on_group_message(self, event: GroupMessage):
+    async def on_group_message(self, event: GroupMessageEvent):
         await event.reply(text="干嘛", at=False)
