@@ -5,7 +5,7 @@ description = "GitHub webhook监听Bot，基于NapCat"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "ncatbot>=4.1.2",
+    "ncatbot==4.2.0",
     "flask>=3.1.2",
     "cryptography>=46.0.1",
 ]
